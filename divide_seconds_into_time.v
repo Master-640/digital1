@@ -21,13 +21,13 @@
 
 //这是把当前时间变成时，分，秒
 module divide_seconds_into_time(
-input [7:0]now_time,
+input [15:0]now_time,
 output reg [4:0]hour,
 output reg [5:0]minute,second
     );
 initial begin
-    hour = now_time / 4'd3600;
-    minute = (now_time) % 4'd3600 / 2'd60;
-    second = (now_time) % 2'd60;
+    hour = now_time / 16'd3600;
+    minute = (now_time) % 16'd3600 / 6'd60;
+    second = (now_time) % 6'd60;
  end
 endmodule
