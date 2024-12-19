@@ -11,7 +11,7 @@ module number(
     output reg [7:0] seg_cs       // 数码管控制信号
 );
    //如果enable不行，那么这个模块无效  
-    reg clk_500hz;
+    reg clk_500hz;  //500HZ时钟信号
     integer clk_cnt;
     // 生成500Hz时钟信号用于扫描数码管
     always @(posedge clk or negedge enable)

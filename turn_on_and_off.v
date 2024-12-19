@@ -119,15 +119,7 @@ module turn_on_and_off(
         end
     end
     
-    current_time_display ctd(
-    .clk(clk),
-    .rst(rst),
-    .power_status(power_status),
-    .seg_out_left(left_time),
-    .seg_out_right(right_time),
-    .seg_en_left(selection[7:4]),
-    .seg_en_right(selection[3:0])
-    );
+    
     
 endmodule
 

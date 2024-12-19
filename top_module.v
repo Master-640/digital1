@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module top_module(
-    input clk, control_light, rst_n, return_to_initial_state,
+    input clk, control_light, rst_n, return_to_initial_state,enable,
     input enable_for_modify_time,
     input display_configtime,rst_for_turn_on,state_for_open,
     input enable_for_display,
@@ -31,7 +31,8 @@ module top_module(
     input clean_by_hand,//拨码开关上去就是手动查询
     output reg light,
     output reg total_time_light,I_use_hand_clean,
-    output reg show_it_close
+    output reg show_it_close,
+    output reg [7:0]seg_data_left,seg_data_right,seg_data_cs
 );
 //s0待机s1菜单s2一档s3二档s4三档s5自清洁s6调时间
 parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
@@ -41,12 +42,18 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     reg [5:0] hurricane_countdown1;
     reg [5:0] hurricane_countdown2;
     reg [5:0] hand_gesture_countdown;
-    reg enable_total_time,enable_gesture_time,enable;
+    reg enable_total_time,enable_gesture_time;
+    wire [7:0]seg_data_left_modify,seg_data_right_modify;
+    wire [7:0]seg_data_cs_modify;
+    wire [7:0]seg_data_left_query1,seg_data_right_query1;
+    wire [7:0]seg_data_cs_query1;
+    wire [7:0]seg_data_left_query2,seg_data_right_query2;
+    wire [7:0]seg_data_cs_query2;
     wire clk_bps;
-    reg [4:0] tmp_hour;
-    reg [5:0] tmp_minutes,tmp_seconds;
+    wire [4:0] tmp_hour;
+    wire [5:0] tmp_minutes,tmp_seconds;
     //使用tmp作为中间变量，我每次传个tmp过去，然后收到tmp返回的信息就行
-    reg [2:0] now_state, next_state;
+    wire [2:0] now_state, next_state;
     wire [4:0] gesture_tmp_hour,total_tmp_hour;
     wire [5:0] total_tmp_minutes;
     wire [5:0] total_tmp_seconds,gesture_tmp_minutes,gesture_tmp_seconds;
@@ -120,13 +127,13 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
           //这里写入关机状态，就是disable掉所有按钮
        //   now_state = 3'b111;
           show_it_close  =1'b1;
-          enable  = 1'b0;
+         // enable  = 1'b0;
        end
        else 
        begin
     //   now_state = s0;
        show_it_close = 1'b0;
-       enable = 1'b1;
+       //enable = 1'b1;
        end
     end
     // 控制照明
@@ -155,7 +162,7 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     //now_state等价
     always @(*) begin//时间显示的enable
     //enable信号是高电频有效
-            if(query_what)
+            if(query_what[1])
             begin
             if(now_state==s0)
                 case(query_what)
@@ -163,11 +170,17 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
                 begin
                 enable_total_time <= 1'b1;
                 enable_gesture_time <= 1'b0;
+                seg_data_cs <=seg_data_cs_query1;
+                seg_data_left <= seg_data_left_query1;
+                seg_data_right<=seg_data_right_query1;
                 end
                 2'b11:
                 begin
                 enable_gesture_time <= 1'b1;
                 enable_total_time <= 1'b0;
+                seg_data_cs <=seg_data_cs_query2;
+                seg_data_left <= seg_data_left_query2;
+                seg_data_right<=seg_data_right_query2;
                 end
                 default :begin
                 enable_total_time<=1'b0;
@@ -194,12 +207,19 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
         number number1(.enable(enable_total_time),
         .modified_hours(total_tmp_hour),
         .modified_minutes(total_tmp_minutes),
-        .modified_seconds(total_tmp_seconds)
+        .modified_seconds(total_tmp_seconds),
+        .seg_data(seg_data_right_query1),
+        .seg_data2(seg_data_left_query1),
+        .seg_cs(seg_data_cs_query1)
         );
         number number2(.enable(enable_gesture_time),
         .modified_hours(gesture_tmp_hour),
         .modified_minutes(gesture_tmp_minutes),
-        .modified_seconds(gesture_tmp_seconds));
+        .modified_seconds(gesture_tmp_seconds),
+        .seg_data(seg_data_right_query1),
+        .seg_data2(seg_data_left_query2),
+        .seg_cs(seg_data_cs_query2)
+        );
         //从这里到上面最近的always,完成的是待机模式查询时间的功能
          //number
         //这里要实现一个total_time智能提醒的功能
@@ -236,7 +256,10 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
             .modified_hours(tmp_accepted_hour),
             .modified_minutes(tmp_accepted_minutes),
             .modified_seconds(tmp_accepted_seconds),
-            .modified_time(tmp_accepted_time)
+            .modified_time(tmp_accepted_time),
+            .seg_data(seg_data_right_modify),
+            .seg_data2(seg_data_left_modify),
+            .seg_cs(seg_data_cs_modify)
             );
           //enable_for_modify_time是根据外部的拨码开关控制的，query_what也是
 always @(posedge clk_bps) begin
@@ -266,11 +289,16 @@ always @(posedge clk_bps) begin
            s4:begin
                 total_time <= total_time+1;
             end
-            default:true;
             s5:begin
                 total_time <= 0;
             end
             s6:begin//这里要实例化key,然后做一个enable
+            if(modify_what[2])
+            begin
+            seg_data_cs <=seg_data_cs_modify;
+            seg_data_left <= seg_data_left_modify;
+            seg_data_right<=seg_data_right_modify;
+            end
             case (modify_what)//控制modify_what的按钮不能和控制query_what的同时往上
             3'b100:
             begin//这里不能用<=赋值啊，要不然tmp_accepted_time还没得到
@@ -293,11 +321,10 @@ always @(posedge clk_bps) begin
             tmp_time = hand_gesture_countdown;
             hand_gesture_countdown = tmp_accepted_time;
             end
-            default:now_state <= now_state;//做个无意义语句
+           //做个无意义语句
             endcase
             end
         endcase
-        now_state <= next_state;
     end
  endmodule
 

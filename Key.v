@@ -6,9 +6,9 @@ module Key(
     input [4:0] init_hours,   // 输入初始小时
     input [5:0] init_minutes, // 输入初始分钟
     input [5:0] init_seconds, // 输入初始秒
-    output reg  [7:0] seg_data,
-    output reg [7:0] seg_data2,
-    output reg [7:0] seg_cs,
+    output wire  [7:0] seg_data,
+    output wire [7:0] seg_data2,
+    output wire [7:0] seg_cs,
     output reg [5:0] led1,
     output reg [4:0] modified_hours,   // 输出修改后的小时
     output reg [5:0] modified_minutes, // 输出修改后的分钟
@@ -19,7 +19,7 @@ module Key(
     reg [4:0] key_vc;
     reg [4:0] key_vp;
     reg [19:0] keycnt;
-    always @(posedge clk or negedge enable)
+    /*always @(posedge clk or negedge enable)
     begin
      if(!enable)
      begin
@@ -27,7 +27,7 @@ module Key(
      seg_data2 =8'bzzzz_zzzz;
      seg_cs = 8'bzzzz_zzzz;
      end
-    end
+    end*/
     always @(posedge clk or negedge rst) begin
     //这里是不是时序逻辑和组合逻辑混用了？
         if (!rst) begin
@@ -135,7 +135,7 @@ module Key(
     number u2(  
         .clk(clk),
         .rst(rst),
-        .data(data),
+    //    .data(data),
         .seg_data(seg_data),
         .seg_data2(seg_data2),
         .seg_cs(seg_cs)
