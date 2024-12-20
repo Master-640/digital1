@@ -22,7 +22,7 @@
 module top_module(
     input clk, control_light, rst_n, return_to_initial_state,enable,
     input enable_for_modify_time,
-    input display_configtime,rst_for_turn_on,state_for_open,
+    input display_configtime,rst_for_turn_on,
     input enable_for_display,
     input rst_for_key,
     input in1, in2, in3, in4, in5,
@@ -32,7 +32,9 @@ module top_module(
     output reg light,
     output reg total_time_light,I_use_hand_clean,
     output reg show_it_close,
-    output reg [7:0]seg_data_left,seg_data_right,seg_data_cs
+    output reg [7:0]seg_data_left,seg_data_right,seg_data_cs,
+    output led0,led1,led2,led3,led4,led5,led6,
+    output state_for_open
 );
 //s0待机s1菜单s2一档s3二档s4三档s5自清洁s6调时间
 parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
@@ -76,24 +78,25 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     .minute(tmp_minutes),
     .second(tmp_seconds)
     );
-    parameter [7:0] selfclean_countdown_st = 8'd180; // 设置自清洁倒计时
-    parameter [5:0] hurricane_countdown1_st = 6'd60;  // 设置飓风倒计时1
-    parameter [5:0] hurricane_countdown2_st = 6'd60;  // 设置飓风倒计时2
-    parameter [5:0] hand_gesture_countdown_st=6'd5;
+    parameter [7:0] selfclean_countdown_st = 8'd3; // 设置自清洁倒计时
+    parameter [5:0] hurricane_countdown1_st = 6'd3;  // 设置飓风倒计时1
+    parameter [5:0] hurricane_countdown2_st = 6'd3;  // 设置s飓风倒计时2
+    parameter [5:0] hand_gesture_countdown_st=6'd3;
 
     // 初始化计时器
     initial begin
-        total_time = 8'b0;
-        selfclean_countdown = selfclean_countdown_st;
-        hurricane_countdown1 = hurricane_countdown1_st;
-        hurricane_countdown2 = hurricane_countdown2_st;
-        hand_gesture_countdown  = hand_gesture_countdown_st;
-    end
+     assign  total_time = 8'b0;
+     assign selfclean_countdown = selfclean_countdown_st;
+      assign  hurricane_countdown1 = hurricane_countdown1_st;
+      assign  hurricane_countdown2 = hurricane_countdown2_st;
+      assign  hand_gesture_countdown  = hand_gesture_countdown_st;
+  end 
 
     // 状态机实例化
     state_machine state_machine_1(
         .enable(enable),
-        .clk(clk_bps),
+        .clk_bps(clk_bps),
+        .clk(clk),
         .in1(in1),
         .in2(in2),
         .in3(in3),
@@ -103,7 +106,14 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
         .hurricane_countdown1(hurricane_countdown1),
         .hurricane_countdown2(hurricane_countdown2),
         .state(now_state),
-        .next_state(next_state)
+        .next_state(next_state),
+        .led0(led0),
+        .led1(led1),
+        .led2(led2),
+        .led3(led3),
+        .led4(led4),
+        .led5(led5),
+        .led6(led6)
     );
 
     // 生成时钟脉冲
@@ -114,30 +124,30 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     );
     //以上是初始化
     //这是实例化开机的模块
-    turn_on_and_off turn_on(.clk(clk_bps),
+    turn_on_and_off turn_on(.clk(clk),
     .rst(rst_for_turn_on),
     .power_button(in3),
     .left_button(in1),
     .right_button(in5),
     .power_status(state_for_open)
     );
-    always@(*) begin
+    always@(posedge clk_bps) begin
        if(!state_for_open)
        begin
           //这里写入关机状态，就是disable掉所有按钮
        //   now_state = 3'b111;
-          show_it_close  =1'b1;
+          show_it_close  =1'b0;
          // enable  = 1'b0;
        end
        else 
        begin
     //   now_state = s0;
-       show_it_close = 1'b0;
+       show_it_close = 1'b1;
        //enable = 1'b1;
        end
     end
     // 控制照明
-    always @(*) begin
+    always @(posedge clk_bps) begin
         if (control_light) begin
             light = 1'b1;  // 开灯
         end else begin
@@ -150,7 +160,7 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     // 计时器更新（例如自清洁和飓风倒计时）
     //需要进行修改，后续有一个状态记录
     
-    always @(* ) begin
+    always @(posedge clk_bps) begin
         if (return_to_initial_state) begin//这里连接一个拨码开关
             // 复位时重新初始化计时器
             selfclean_countdown <= selfclean_countdown_st;
@@ -160,34 +170,9 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
         end
     end
     //now_state等价
-    always @(*) begin//时间显示的enable
+    always @(posedge clk_bps) begin//时间显示的enable
     //enable信号是高电频有效
-            if(query_what[1])
-            begin
-            if(now_state==s0)
-                case(query_what)
-                2'b10:
-                begin
-                enable_total_time <= 1'b1;
-                enable_gesture_time <= 1'b0;
-                seg_data_cs <=seg_data_cs_query1;
-                seg_data_left <= seg_data_left_query1;
-                seg_data_right<=seg_data_right_query1;
-                end
-                2'b11:
-                begin
-                enable_gesture_time <= 1'b1;
-                enable_total_time <= 1'b0;
-                seg_data_cs <=seg_data_cs_query2;
-                seg_data_left <= seg_data_left_query2;
-                seg_data_right<=seg_data_right_query2;
-                end
-                default :begin
-                enable_total_time<=1'b0;
-                enable_gesture_time<=1'b0;
-                end
-                endcase
-            end
+            
         end
         reg [7:0]tmp_display_time;
         wire [4:0]tmp_display_hour;
@@ -216,7 +201,7 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
         .modified_hours(gesture_tmp_hour),
         .modified_minutes(gesture_tmp_minutes),
         .modified_seconds(gesture_tmp_seconds),
-        .seg_data(seg_data_right_query1),
+        .seg_data(seg_data_right_query2),
         .seg_data2(seg_data_left_query2),
         .seg_cs(seg_data_cs_query2)
         );
@@ -265,16 +250,31 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
 always @(posedge clk_bps) begin
         case (now_state)
             s0: begin
-            case (query_what)
-            2'b10:
+            if(query_what[1])
             begin
-            //tmp_display_time = total_time;
-            end
-            2'b10:
-            begin
-            //tmp_display_time = hand_gesture_countdown;
-            end
-            endcase
+             case(query_what)
+                            2'b10:
+                            begin
+                            enable_total_time <= 1'b1;
+                            enable_gesture_time <= 1'b0;
+                            seg_data_cs <=seg_data_cs_query1;
+                            seg_data_left <= seg_data_left_query1;
+                            seg_data_right<=seg_data_right_query1;
+                            end
+                            2'b11:
+                            begin
+                            enable_gesture_time <= 1'b1;
+                            enable_total_time <= 1'b0;
+                            seg_data_cs <=seg_data_cs_query2;
+                            seg_data_left <= seg_data_left_query2;
+                            seg_data_right<=seg_data_right_query2;
+                            end
+                            default :begin
+                            enable_total_time<=1'b0;
+                            enable_gesture_time<=1'b0;
+                            end
+                            endcase
+                 end
                 // 这里应该是显示数据的逻辑，(已经解决)
                 // 初步设想是用一个显示模块或数据寄存器来实现
             end
