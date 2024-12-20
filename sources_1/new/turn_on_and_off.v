@@ -49,7 +49,7 @@ module turn_on_and_off(
         .button_in(right_button),
         .button_out(right_stable)
     );
-
+    //需要给其他几个模块也加上去除抖动
     // 主逻辑
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
@@ -118,8 +118,6 @@ module turn_on_and_off(
             right_prev <= right_stable;
         end
     end
-    
-    
     
 endmodule
 

@@ -1,140 +1,135 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2024/12/08 15:42:44
-// Design Name: 
-// Module Name: state_machine
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-//
-
 module state_machine(
-input  enable,in1,in2,in3,in4,in5,
-input clk,
-input [5:0]hurricane_countdown1,hurricane_countdown2,//三档倒计时 1：返回二档；2：返回待机
-input [7:0]selfclean_countdown,//自清洁倒计时
-output reg [2:0] state,next_state,
-output reg led0,reg led1,reg led2,reg led3,reg led4,reg led5
-    );//s0待机s1菜单s2一档s3二档s4三档s5自清洁s6调时间
-parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
-wire [5:0]in;
-assign in={enable,in1,in2,in3,in4,in5};
-reg [5:0] timer_s4_1 = 0; // 60 seconds for hurricane mode
-reg [5:0] timer_s4_2 = 0;
-reg [7:0] timer_s5 = 0; // 3 minutes for self-cleaning mode
-reg hurricane_used=1'b1;//是否使用过飓风模式
-reg back_to_standby=1'b0;//是否回到待机
-always @(posedge clk) begin
-    if (state == s4 && timer_s4_1 > 0) begin
-        timer_s4_1 <= timer_s4_1- 1;
-    end
-    if (state == s5 && timer_s5 > 0) begin
-        timer_s5 <= timer_s5 - 1;
-    end
+    input enable, in1, in2, in3, in4, in5,
+    input clk,
+    input clk_bps,
+    input [5:0] hurricane_countdown1,
+    input [5:0] hurricane_countdown2,
+    input [7:0] selfclean_countdown,
+    output reg [2:0] state, next_state,
+    output reg led0, led1, led2, led3, led4, led5, led6
+);
+
+parameter s0 = 3'b000, s1 = 3'b001, s2 = 3'b010, s3 = 3'b011, 
+          s4 = 3'b100, s5 = 3'b101, s6 = 3'b110;
+
+wire [5:0] in;
+assign in = {enable, in1, in2, in3, in4, in5};
+
+// 倒计时信号
+reg start_hurricane_timer1 = 0;
+reg start_hurricane_timer2 = 0;
+reg start_selfclean_timer = 0;
+
+wire hurricane_done1, hurricane_done2, selfclean_done;
+wire [7:0] hurricane_time_left1, hurricane_time_left2, selfclean_time_left;
+
+// 调用倒计时模块
+countdown_timer hurricane_timer1(
+    .clk(clk_bps),
+    .reset(state != s4), // 如果状态离开s4，则复位
+    .start(start_hurricane_timer1),
+    .countdown(hurricane_countdown1),
+    .done(hurricane_done1),
+    .time_left(hurricane_time_left1)
+);
+
+countdown_timer hurricane_timer2(
+    .clk(clk_bps),
+    .reset(state != s4), // 如果状态离开s4，则复位
+    .start(start_hurricane_timer2),
+    .countdown(hurricane_countdown2),
+    .done(hurricane_done2),
+    .time_left(hurricane_time_left2)
+);
+
+countdown_timer selfclean_timer(
+    .clk(clk_bps),
+    .reset(state != s5), // 如果状态离开s5，则复位
+    .start(start_selfclean_timer),
+    .countdown(selfclean_countdown),
+    .done(selfclean_done),
+    .time_left(selfclean_time_left)
+);
+
+reg hurricane_used = 1'b1;
+reg back_to_standby = 1'b0;
+
+always @(posedge clk_bps) begin
     state <= next_state;
 end
 
-
 always @* begin
+    // 默认不启动倒计时
+    start_hurricane_timer1 = 0;
+    start_hurricane_timer2 = 0;
+    start_selfclean_timer = 0;
+
     case (state)
         s0: begin // 待机模式
             case (in)
-                6'b110000: next_state = s1; // 菜单键，准备切换模式
+                6'b110000: next_state = s1; // 菜单键，切换模式
+                6'b101000: next_state = s6; // 调时间
                 default: next_state = s0;
             endcase
         end
         s1: begin // 菜单模式
             case (in)
-                6'b110000: next_state = s2; // 1档键，进入1档抽油烟模式
-                6'b101000: next_state = s3; // 2档键，进入2档抽油烟模式
-                6'b100100: 
-                    if(hurricane_used)begin
-                        next_state = s4; // 3档键，进入3档抽油烟模式（飓风模式）
-                        hurricane_used=1'b0;
+                6'b110000: next_state = s2; // 一档
+                6'b101000: next_state = s3; // 二档
+                6'b100100: begin
+                    if (hurricane_used) begin
+                        next_state = s4; // 三档（飓风模式）
+                        hurricane_used = 1'b0;
+                        start_hurricane_timer1 = 1; // 开始飓风倒计时
                     end
-                6'b100010: next_state = s5; // 自清洁按键，进入自清洁模式
+                end
+                6'b100010: begin
+                    next_state = s5; // 自清洁
+                    start_selfclean_timer = 1; // 开始自清洁倒计时
+                end
                 default: next_state = s1;
             endcase
         end
-        s2: begin // 1档抽油烟模式
-            case (in)
-                6'b110000: next_state = s1; // 菜单键，返回待机模式
-                6'b101000: next_state = s3;//2档
-                default: next_state = s2;
-            endcase
+        s2: begin // 一档
+            next_state = (in == 6'b110000) ? s1 : s2; // 返回菜单
         end
-        s3: begin // 2档抽油烟模式
-            case (in)
-                6'b110000: next_state = s1; // 菜单键，返回待机模式
-                6'b101000: next_state = s2;//1档
-                default: next_state = s3;
-            endcase
+        s3: begin // 二档
+            next_state = (in == 6'b110000) ? s1 : s3; // 返回菜单
         end
-        s4: begin // 3档抽油烟模式（飓风模式）
-            case (in)
-                6'b100000: 
-                    if(timer_s4_1==0) begin
-                        timer_s4_1=hurricane_countdown1;
-                        next_state = s4;
-                    end
-                    else if(!back_to_standby && timer_s4_1==1)begin
-                        next_state=s3;
-                    end
-                    else if(back_to_standby && timer_s4_2==1)begin
-                        next_state=s0;
-                    end
-                    else next_state = s4;
-                6'b110000:
-                    if(timer_s4_2==0) begin
-                        timer_s4_2=hurricane_countdown2;
-                        next_state = s4;
-                        back_to_standby=1'b1;
-                    end
-//                    else if(timer_s4_2==1)begin
-//                        next_state=s0;
-//                    end
-//                    else next_state = s4;
-                default: next_state = s4;
-            endcase
+        s4: begin // 三档（飓风模式）
+            if (hurricane_done1) begin
+                if (back_to_standby) begin
+                    next_state = s0; // 回到待机
+                end else begin
+                    next_state = s3; // 回到二档
+                    start_hurricane_timer2 = 1; // 开始二次倒计时
+                end
+            end else begin
+                next_state = s4; // 继续倒计时
+            end
         end
         s5: begin // 自清洁模式
-            case (in)
-                6'b100000: 
-                if(timer_s5==0) begin
-                    timer_s5=selfclean_countdown;
-                    next_state = s5;
-                end
-                else if(timer_s5==1)begin
-                    next_state=s0;
-                end
-                else next_state = s5;
-                default: next_state = s5;
-            endcase
+            if (selfclean_done) begin
+                next_state = s0; // 返回待机
+            end else begin
+                next_state = s5;
+            end
         end
-        default: next_state = s0; // 默认返回待机模式
+        s6: begin // 调时间
+            next_state = (in == 6'b110000) ? s0 : s6; // 返回待机
+        end
+        default: next_state = s0;
     endcase
 end
 
-
 always @(state) begin
-    led0 = (state == s0); 
-    led1 = (state == s1); 
-    led2 = (state == s2); 
-    led3 = (state == s3); 
-    led4 = (state == s4); 
-    led5 = (state == s5); 
+    led0 = (state == s0);
+    led1 = (state == s1);
+    led2 = (state == s2);
+    led3 = (state == s3);
+    led4 = (state == s4);
+    led5 = (state == s5);
+    led6 = (state == s6);
 end
 
 endmodule
