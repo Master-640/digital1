@@ -41,9 +41,9 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     reg [7:0] selfclean_countdown;//tmp均为中间变量
     reg [15:0] total_time,tmp_time;
     reg [7:0] current_time;
-    reg [5:0] hurricane_countdown1;
-    reg [5:0] hurricane_countdown2;
-    reg [5:0] hand_gesture_countdown;
+    reg [7:0] hurricane_countdown1;
+    reg [7:0] hurricane_countdown2;
+    reg [7:0] hand_gesture_countdown;
     reg enable_total_time,enable_gesture_time;
     wire [7:0]seg_data_left_modify,seg_data_right_modify;
     wire [7:0]seg_data_cs_modify;
@@ -78,10 +78,10 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
     .minute(tmp_minutes),
     .second(tmp_seconds)
     );
-    parameter [7:0] selfclean_countdown_st = 8'd3; // 设置自清洁倒计时
-    parameter [5:0] hurricane_countdown1_st = 6'd3;  // 设置飓风倒计时1
-    parameter [5:0] hurricane_countdown2_st = 6'd3;  // 设置s飓风倒计时2
-    parameter [5:0] hand_gesture_countdown_st=6'd3;
+    parameter [7:0] selfclean_countdown_st = 8'd10; // 设置自清洁倒计时
+    parameter [7:0] hurricane_countdown1_st = 8'd10;  // 设置飓风倒计时1
+    parameter [7:0] hurricane_countdown2_st = 8'd10;  // 设置s飓风倒计时2
+    parameter [7:0] hand_gesture_countdown_st=8'd10;
 
     // 初始化计时器
     initial begin
@@ -136,13 +136,13 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
        begin
           //这里写入关机状态，就是disable掉所有按钮
        //   now_state = 3'b111;
-          show_it_close  =1'b0;
+          show_it_close  =1'b1;
          // enable  = 1'b0;
        end
        else 
        begin
     //   now_state = s0;
-       show_it_close = 1'b1;
+       show_it_close = 1'b0;
        //enable = 1'b1;
        end
     end
