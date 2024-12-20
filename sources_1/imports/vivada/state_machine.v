@@ -74,16 +74,16 @@ always @* begin
         end
         s1: begin // 菜单模式
             case (in)
-                6'b110000: next_state = s2; // 一档
-                6'b101000: next_state = s3; // 二档
-                6'b100100: begin
+                6'b101000: next_state = s2; // 一档
+                6'b100100: next_state = s3; // 二档
+                6'b100010: begin
                     if (hurricane_used) begin
                         next_state = s4; // 三档（飓风模式）
                         hurricane_used = 1'b0;
                         start_hurricane_timer1 = 1; // 开始飓风倒计时
                     end
                 end
-                6'b100010: begin
+                6'b100001: begin
                     next_state = s5; // 自清洁
                     start_selfclean_timer = 1; // 开始自清洁倒计时
                 end
@@ -91,20 +91,30 @@ always @* begin
             endcase
         end
         s2: begin // 一档
-            next_state = (in == 6'b110000) ? s1 : s2; // 返回菜单
+            case (in)
+                6'b110000: next_state = s1; // 菜单键，返回待机模式
+                6'b100100: next_state = s3;//2档
+                default: next_state = s2;
+            endcase
         end
         s3: begin // 二档
-            next_state = (in == 6'b110000) ? s1 : s3; // 返回菜单
+            case (in)
+                6'b110000: next_state = s1; // 菜单键，返回待机模式
+                6'b101000: next_state = s2;//1档
+                default: next_state = s3;
+            endcase
         end
         s4: begin // 三档（飓风模式）
-            if (hurricane_done1) begin
-                if (back_to_standby) begin
-                    next_state = s0; // 回到待机
-                end else begin
+            if (in==6'b110000)begin
+                back_to_standby=1'b1;
+                start_hurricane_timer2=1'b1;
+            end
+            if (!start_hurricane_timer2 && hurricane_done1) begin
                     next_state = s3; // 回到二档
-                    start_hurricane_timer2 = 1; // 开始二次倒计时
-                end
-            end else begin
+            end else if(start_hurricane_timer2 && hurricane_done2) begin
+                    next_state=s0;
+            end
+            else begin
                 next_state = s4; // 继续倒计时
             end
         end

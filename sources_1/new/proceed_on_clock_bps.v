@@ -27,20 +27,20 @@ output clk_bps
     always@(posedge clk,negedge rst_n)
         if(!rst_n)
             cnt_first<=14'd0;
-        else if(cnt_first==14'd5000)
+        else if(cnt_first==14'd10000)
             cnt_first<=14'd0;
         else
             cnt_first<=cnt_first+1'b1;
     always@(posedge clk,negedge rst_n)
         if(!rst_n)
                 cnt_second<=14'd0;
-        else if(cnt_second==14'd5000)
+        else if(cnt_second==14'd10000)
                 cnt_second<=14'd0;
-        else if(cnt_first==14'd5000)
+        else if(cnt_first==14'd10000)
                 cnt_second<=cnt_second+1'b1;
         else
                 cnt_second<=cnt_second;
-     assign clk_bps=(cnt_second==14'd5000);       
+     assign clk_bps=(cnt_second==14'd10000);       
 endmodule
 
 //这个模块执行了一个分频的功能，会加入rst_n,clk,输出clk_bps
