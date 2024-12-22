@@ -98,14 +98,14 @@ always @* begin
         end
         s2: begin // 一档
             case (in)
-                6'b110000: next_state = s1; // 菜单键，返回待机模式
+                6'b110000: next_state = s0; // 菜单键，返回待机模式
                 6'b100100: next_state = s3;//2档
                 default: next_state = s2;
             endcase
         end
         s3: begin // 二档
             case (in)
-                6'b110000: next_state = s1; // 菜单键，返回待机模式
+                6'b110000: next_state = s0; // 菜单键，返回待机模式
                 6'b101000: next_state = s2;//1档
                 default: next_state = s3;
             endcase

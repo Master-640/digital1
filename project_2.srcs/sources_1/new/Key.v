@@ -21,9 +21,10 @@
 //可以用这个模块去复用显示,先把数据传进去，然后直接在里面显示
 //查询特用
 
-module Key(
+module Key(//把rst和rst_for_key锁住，管办分离
     input   clk,
     input   rst,
+    input   rst_for_key,
     input   [4:0]btn,
     input   [4:0]initial_hour,
     input   [5:0]initial_minutes,initial_seconds,
@@ -76,12 +77,14 @@ module Key(
     integer timer_cnt;
 
     always @(posedge clk or negedge rst) begin
-       if(!rst)
+       //如果不使用显示当前时间的模式,请打开R3(rst_for_key)
+       //timer_cnt的时间是实时更新的
+       if(!rst_for_key) //打开这个之后才是锁住了初始时间
        begin
-       seconds=seconds;
-       minutes=minutes;
-       hours=hours;
-       timer_cnt = timer_cnt;
+             seconds=seconds;
+             minutes=minutes;
+             hours=hours;
+             timer_cnt = timer_cnt+1;
        end
        else
        begin

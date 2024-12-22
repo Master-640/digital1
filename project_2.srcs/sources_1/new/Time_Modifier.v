@@ -104,23 +104,25 @@ module Time_Modifier(
     end
 
     // 使用按钮调整时间的逻辑
-
-    always @(posedge clk or negedge rst) begin
+   // 如果使用Time_Modifier,请打P5;不使用请关闭P5;
+    always @(posedge clk or negedge rst) begin //这里的是rst_for_time_modify(P5);
 
         if (!rst) begin
 
-            seconds <= seconds;  // 复位秒数
+            seconds <= seconds;  // 停在秒数
 
             minutes <= minutes;  // 复位分钟
 
             hours   <= hours;    // 复位小时
 
-        end else begin
-        if(state == 3'b000 && btn[3]== 1'b1)
+        end 
+        else 
+        begin
+        if(state == 3'b110 && btn[2]== 1'b1)
                begin
-               seconds = initial_second;
-               minutes = initial_minutes;
-               hours  = initial_hours;
+               seconds <= initial_second;
+               minutes <= initial_minutes;
+               hours  <= initial_hours;
                end
           else
           begin
@@ -247,7 +249,7 @@ module Time_Modifier(
 
     reg [31:0] data;
 
-    always @(*) begin
+    always @(posedge clk) begin
         data[31:28] = hours / 10;     // 小时十位
         data[27:24] = hours % 10;     // 小时个位
         data[23:20] = 4'hF;           // 分隔符

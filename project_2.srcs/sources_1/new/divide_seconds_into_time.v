@@ -21,13 +21,15 @@
 
 //这是把当前时间变成时，分，秒
 module divide_seconds_into_time(
+input  clk,
 input [15:0]now_time,
 output reg [4:0]hour,
 output reg [5:0]minute,second
     );
-initial begin
+    always @(posedge clk)
+    begin
     hour = now_time / 16'd3600;
-    minute = (now_time) % 16'd3600 / 6'd60;
-    second = (now_time) % 6'd60;
- end
+    minute = (now_time) % 16'd3600 / 16'd60;
+    second = (now_time) % 16'd60;
+    end
 endmodule
