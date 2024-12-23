@@ -29,13 +29,14 @@ module top_module(
     //待机查询时间的时候查询什么
     input [2:0]modify_what,
     input clean_by_hand,//拨码开关上去就是手动查询
-    input rst_for_time_modify1,rst_for_time_modify2,//P5是空的
+    input rst_for_time_modify1,rst_for_time_modify2,rst_for_time_modify3,//P5是空的
     output reg light,
     output reg total_time_light,I_use_hand_clean,
     output reg show_it_close,
     output reg [7:0]seg_data_left,seg_data_right,seg_data_cs,
     output led0,led1,led2,led3,led4,led5,led6,
-    output state_for_open
+    output state_for_open,
+    output audio
 );
 //s0待机s1菜单s2一档s3二档s4三档s5自清洁s6调时间
 parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
@@ -108,7 +109,9 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
         .hold_on_now_state(hold_on_now_state),
         .clk_bps(clk_bps),
         .rst(rst),
-        .clk(clk_aps),
+        .clk(clk),
+        .clk_aps(clk_aps),
+        .audio(audio),
         .in1(in1),
         .in2(in2),
         .in3(in3),
@@ -206,7 +209,19 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
         wire [4:0]tmp_accepted_hour2;
         wire [5:0]tmp_accepted_minutes2,tmp_accepted_seconds2;
         reg [15:0]tmp_accepted_time2;
+        wire [5:0]tmp_accepted_minutes3,tmp_accepted_seconds3;
+        wire [4:0]tmp_accepted_hour3;
         wire [7:0]seg_data_left_open,seg_data_right_open,seg_data_cs_open;
+        wire [7:0]seg_data_left_query3,seg_data_right_query3,seg_data_cs_query3;
+        wire [4:0]total_hour;
+        wire [5:0]total_minutes,total_seconds;
+        divide_seconds_into_time div_tot(
+        .clk(clk),
+        .now_time(total_time),
+        .hour(total_hour),
+        .minute(total_minutes),
+        .second(total_seconds)
+        );
         //enable for key 不要了
         Key key1(//这个直接在里面存就好
             .clk(clk),
@@ -251,6 +266,21 @@ parameter s0=3'b000,s1=3'b001,s2=3'b010,s3=3'b011,s4=3'b100,s5=3'b101,s6=3'b110;
                           .seg_data2(seg_data_left_query2),
                           .seg_cs(seg_data_cs_query2)
                           );
+                Time_Modifier TM3(//这是和total_time绑定的
+                                                    .state(now_state),
+                                                    .clk(clk),
+                                                    .rst(rst_for_time_modify3),//U3
+                                                    .btn({in2,in1,in3,in4,in5}),
+                                                    .initial_second(total_seconds),
+                                                    .initial_minutes(total_minutes),
+                                                    .initial_hours(total_hour),
+                                                    .hours(tmp_accepted_hour3),
+                                                    .minutes(tmp_accepted_minutes3),
+                                                    .seconds(tmp_accepted_seconds3),
+                                                    .seg_data(seg_data_right_query3),
+                                                    .seg_data2(seg_data_left_query3),
+                                                    .seg_cs(seg_data_cs_query3)
+                                                    );
           //enable_for_modify_time是根据外部的拨码开关控制的，query_what也是
           //seg_data的赋值一定要全部在这里面！
 always @(posedge clk)//不要用clk_bps!因为打印是必须实时打印的.
@@ -267,6 +297,12 @@ begin
      tmp_accepted_time1 = 16'd3600*tmp_accepted_hour1+16'd60*tmp_accepted_minutes1+tmp_accepted_seconds1;
      tmp_accepted_time2 = 16'd3600*tmp_accepted_hour2+16'd60*tmp_accepted_minutes2+tmp_accepted_seconds2;
      case(modify_what)
+     3'b111:
+     begin
+     seg_data_left = seg_data_left_query3;
+     seg_data_right = seg_data_right_query3;
+     seg_data_cs = seg_data_cs_query3;
+     end
      3'b110:
      begin
      if(return_to_initial_state)//这个按钮接到了P5上去

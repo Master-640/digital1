@@ -132,3 +132,9 @@ set_property IOSTANDARD LVCMOS33 [get_ports rst_for_time_modify1]
 set_property IOSTANDARD LVCMOS33 [get_ports rst_for_time_modify2]
 set_property IOSTANDARD LVCMOS33 [get_ports hold_on_now_time]
 
+
+set_property IOSTANDARD LVCMOS33 [get_ports audio]
+set_property PACKAGE_PIN H17 [get_ports audio]
+
+set_property PACKAGE_PIN U3 [get_ports rst_for_time_modify3]
+set_property IOSTANDARD LVCMOS33 [get_ports rst_for_time_modify3]

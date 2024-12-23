@@ -1,13 +1,15 @@
 module state_machine(
     input enable, in1, in2, in3, in4, in5,rst,
     input clk,
+    input clk_aps,
     input clk_bps,
     input hold_on_now_state,
     input [7:0] hurricane_countdown1,
     input [7:0] hurricane_countdown2,
     input [7:0] selfclean_countdown,
     output reg [2:0] state, next_state,
-    output reg led0, led1, led2, led3, led4, led5, led6
+    output reg led0, led1, led2, led3, led4, led5, led6,
+    output  audio
 );
 
 parameter s0 = 3'b000, s1 = 3'b001, s2 = 3'b010, s3 = 3'b011, 
@@ -53,10 +55,17 @@ countdown_timer selfclean_timer(
     .time_left(selfclean_time_left)
 );
 
+audio_output buzzer(
+    .clk(clk),
+    .rst(rst),
+    .enable(hurricane_done2),
+    .BUZZER_PWM(audio)
+    );
+
 reg hurricane_used = 1'b1;
 reg back_to_standby = 1'b0;
 
-always @(posedge clk) begin
+always @(posedge clk_aps) begin
     if(hold_on_now_state)
     state <= state;
     else

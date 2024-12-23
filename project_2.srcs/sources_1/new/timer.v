@@ -19,7 +19,7 @@ module countdown_timer(
                // time_left <= 0;
                 done <= 1'b1; // 倒计时完成
             end else begin
-                time_left <= time_left - 1;
+                time_left <= time_left - 1;  
                 done <= 1'b0;
             end
         end
